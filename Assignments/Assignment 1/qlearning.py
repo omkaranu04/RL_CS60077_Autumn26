@@ -5,7 +5,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 ACTIONS = {0: (-1, 0), 1: (1, 0), 2: (0, -1), 3: (0, 1)}
-ACTION_NAMES = {"Up", "Down", "Left", "Right"}
+ACTION_NAMES = ["Up", "Down", "Left", "Right"]
 
 R_GOAL = 100
 R_VALID = -1
@@ -141,13 +141,13 @@ def get_best_path(env: Grid, agent: Agent):
     path = [state]
     actions = []
     step_rewards = []
-    total_reward = 0.0
+    total_reward = 0
     visited = set()
     for _ in range(max_len):
         if state == env.en:
             break
         if state in visited:
-            return path, total_reward, False
+            return path, actions, step_rewards, total_reward, False
         visited.add(state)
         
         action = agent.action(state=state, greedy=True)
@@ -249,16 +249,16 @@ def plot_comparison(rewards, steps, out_path):
     }
     
 def plot_grid_path(env: Grid, path, out_path):
-    fig, ax = plt.subplots(figsize=(max(4, env.n), max(4, env.m)))
+    fig, ax = plt.subplots(figsize=(max(4, env.m), max(4, env.n)))
 
     for r in range(env.n):
         for c in range(env.m):
             pos = (r, c)
-            if pos in env.obstacles:
+            if pos in env.obs:
                 color = "black"
-            elif pos == env.start:
+            elif pos == env.st:
                 color = "mediumseagreen"
-            elif pos == env.goal:
+            elif pos == env.en:
                 color = "crimson"
             else:
                 color = "white"
