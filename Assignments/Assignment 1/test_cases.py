@@ -1,7 +1,8 @@
-import subprocess
 import sys
 from collections import deque
-PYTHON = sys.executable
+from grid import Grid
+from agent import Agent
+import utils
 
 MOVES = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
@@ -72,105 +73,77 @@ def bfs(n, m, st, en, obs):
             q.append(((nx, ny), d + 1))
     return None
 
-def build_input(case):
-    lines = [str(case["n"]), str(case["m"])]
-    lines.append(f"{case['start'][0]},{case['start'][1]}")
-    lines.append(f"{case['goal'][0]},{case['goal'][1]}")
-    lines.append(str(len(case["obstacles"])))
-    for (r, c) in case["obstacles"]:
-        lines.append(f"{r},{c}")
-    lines.append(str(case["alpha"]))
-    lines.append(str(case["gamma"]))
-    lines.append(str(case["eps"]))
-    lines.append(str(case["episodes"]))
-    return "\n".join(lines) + "\n"
+PASS, FAIL = "PASS", "FAIL"
+results = []
 
-def run_main(case):
-    proc = subprocess.run(
-        [PYTHON, "main.py"],
-        input=build_input(case),
-        text=True,
-        capture_output=True,
-        timeout=300,
-    )
-    return proc.returncode, proc.stdout, proc.stderr
-
-def parse_output(output):
-    result = {"num_steps": None, "total_reward": None, "reached_goal": None}
-    if "The policy did not reach the goal" in output:
-        result["reached_goal"] = False
-        return result
-    for line in output.splitlines():
-        line = line.strip()
-        if line.startswith("Number of steps:"):
-            result["num_steps"] = int(line.split(":")[1].strip())
-        elif line.startswith("Total") and result["total_reward"] is None:
-            parts = line.split()
-            if len(parts) >= 2 and parts[-1].lstrip("-").isdigit():
-                result["total_reward"] = int(parts[-1])
-    result["reached_goal"] = result["num_steps"] is not None
-    return result
+def record(name, ok, lines):
+    results.append((name, PASS if ok else FAIL))
+    print(f"[{PASS if ok else FAIL}] {name}")
+    for line in lines:
+        print(f"       {line}")
+    print()
 
 def verify_case(case):
-    print(f"--- {case['name']} ---")
-    print(f"  Grid: {case['n']}x{case['m']}   Start: {case['start']}   Goal: {case['goal']}   "
-          f"Obstacles: {len(case['obstacles'])}   Episodes: {case['episodes']}")
+    name = case["name"]
+    lines = [f"Grid: {case['n']}x{case['m']}   Start: {case['start']}   Goal: {case['goal']}   "
+             f"Obstacles: {len(case['obstacles'])}   Episodes: {case['episodes']}"]
 
-    returncode, stdout, stderr = run_main(case)
+    try:
+        env = Grid(n=case["n"], m=case["m"], st=case["start"], en=case["goal"], obs=case["obstacles"])
+    except ValueError as e:
+        if case.get("expect_invalid"):
+            lines.append(f"invalid config correctly rejected: {e}")
+            record(name, True, lines)
+            return
+        lines.append(f"FAIL - unexpected ValueError: {e}")
+        record(name, False, lines)
+        return
 
     if case.get("expect_invalid"):
-        if returncode == 0 and "Invalid environment configuration" in stdout:
-            print("  PASS - invalid config was rejected gracefully (no crash)")
-            return True
-        print("  FAIL - expected a graceful 'Invalid environment configuration' message")
-        return False
-
-    if returncode != 0:
-        print("  FAIL - main.py crashed:")
-        last_line = stderr.strip().splitlines()[-1] if stderr.strip() else "(no stderr captured)"
-        print(f"    {last_line}")
-        return False
+        lines.append("FAIL - expected a ValueError but the environment was accepted")
+        record(name, False, lines)
+        return
 
     optimal_len = bfs(case["n"], case["m"], case["start"], case["goal"], case["obstacles"])
-    print(f"  True shortest path length (BFS): {optimal_len}")
+    lines.append(f"True shortest path length (BFS): {optimal_len}")
 
-    result = parse_output(stdout)
-    if not result["reached_goal"]:
-        print("  FAIL - agent's greedy policy did not reach the goal")
-        return False
+    agent = Agent(env=env, alpha=case["alpha"], gamma=case["gamma"], eps=case["eps"], seed=0)
+    utils.train(env=env, agent=agent, episodes=case["episodes"])
+    path, actions, step_rewards, total_reward, success = utils.get_best_path(env=env, agent=agent)
 
-    learned_len = result["num_steps"]
+    if not success:
+        lines.append("FAIL - agent's greedy policy did not reach the goal")
+        record(name, False, lines)
+        return
+
+    learned_len = len(actions)
     expected_reward = (learned_len - 1) * (-1) + 100
-    print(f"  Learned path length: {learned_len}    Total reward: {result['total_reward']}")
+    lines.append(f"Learned path length: {learned_len}    Total reward: {total_reward}")
 
     ok = True
     if learned_len != optimal_len:
-        print(f"  FAIL - learned path length ({learned_len}) != optimal ({optimal_len})")
+        lines.append(f"FAIL - learned path length ({learned_len}) != optimal ({optimal_len})")
         ok = False
-    if result["total_reward"] != expected_reward:
-        print(f"  FAIL - total reward ({result['total_reward']}) != expected ({expected_reward})")
+    if total_reward != expected_reward:
+        lines.append(f"FAIL - total reward ({total_reward}) != expected ({expected_reward})")
         ok = False
 
-    if ok:
-        print("  PASS")
-    return ok
+    record(name, ok, lines)
 
 def main():
-    print("Running test cases for main.py...")
-    results = []
+    print("=== Assignment 1: scenario-based verification ===\n")
     for case in TEST_CASES:
-        ok = verify_case(case)
-        results.append((case["name"], ok))
-        print()
-        
-    print("=" * 55)
-    print("SUMMARY")
-    print("=" * 55)
-    for name, ok in results:
-        print(f"  [{'PASS' if ok else 'FAIL'}] {name}")
+        verify_case(case)
 
-    passed = sum(1 for _, ok in results if ok)
-    print(f"\n{passed}/{len(results)} test cases passed.")
-    
+    n_pass = sum(1 for _, status in results if status == PASS)
+    n_total = len(results)
+    print("=" * 60)
+    print(f"{n_pass}/{n_total} scenarios passed")
+    if n_pass < n_total:
+        for name, status in results:
+            if status == FAIL:
+                print(f"  FAILED: {name}")
+        sys.exit(1)
+
 if __name__ == "__main__":
     main()

@@ -3,60 +3,65 @@ from grid import Grid
 from agent import Agent
 import utils
 
-DEMO_N = 6
-DEMO_M = 5
+DEMO_GRID = [
+    [0, 9, -6, -2, 1],
+    [-9, 2, -5, 1, 1],
+    [1, 10, -5, 2, -2],
+    [-3, 5, 2, 5, -1],
+    [-5, -2, 4, 10, 2],
+    [-2, 1, 2, 3, 0],
+]
 DEMO_START = (0, 0)
 DEMO_GOAL = (5, 4)
-DEMO_OBS = [(0, 4), (1, 2), (2, 0), (2, 4), (3, 3), (4, 0), (5, 2)]
 
 def build_from_args(args):
     if args.demo:
         print("Running in --demo mode with example grid from the PDF")
-        return DEMO_N, DEMO_M, DEMO_START, DEMO_GOAL, DEMO_OBS, 0.1, 0.9, 0.2, args.seed
+        return (DEMO_GRID, DEMO_START, DEMO_GOAL, 0.1, 0.9, 0.2, 500, args.seed)
 
-    n = utils.prompt_int("Enter number of rows (N): ", default=DEMO_N, min_val=1)
-    m = utils.prompt_int("Enter number of columns (M): ", default=DEMO_M, min_val=1)
-    st = utils.prompt_coord("Enter Start position (row,col): ", default=DEMO_START, n=n, m=m)
-    en = utils.prompt_coord("Enter Goal position (row,col): ", default=DEMO_GOAL, n=n, m=m)
+    rows = utils.prompt_int("Number of rows (N): ", min_val=1)
+    cols = utils.prompt_int("Number of columns (M): ", min_val=1)
+    st = utils.prompt_coord("Start position (row,col): ", n=rows, m=cols)
+    en = utils.prompt_coord("Goal position (row,col): ", n=rows, m=cols)
     while st == en:
         print("     Goal must differ from Start.")
-        en = utils.prompt_coord("Enter Goal position (row,col): ", default=DEMO_GOAL, n=n, m=m)
-    n_obs = utils.prompt_int("Enter number of obstacles: ", default=len(DEMO_OBS), min_val=0, max_val=n * m - 2)
-    obs = []
-    for i in range(n_obs):
-        default = DEMO_OBS[i] if i < len(DEMO_OBS) else None
-        obs.append(utils.prompt_coord(f"Enter obstacle {i + 1} position (row,col): ", default=default, n=n, m=m))
+        en = utils.prompt_coord("Goal position (row,col): ", n=rows, m=cols)
+
+    mode = input("Enter grid values manually or randomly? [m/r] (default r): ").strip().lower()
+    if mode == "m":
+        grid = utils.get_manual_grid(rows, cols, st, en)
+    else:
+        grid_seed = utils.prompt_int("Random seed for grid (blank for default): ", default=42)
+        grid = utils.gen_random_grid(rows, cols, st, en, seed=grid_seed)
+        print("\nGenerated hidden grid: ")
+        for row in grid:
+            print(row)
+
     alpha = utils.prompt_float("Learning rate alpha (e.g. 0.1): ", default=0.1, min_val=0.0, max_val=1.0)
     gamma = utils.prompt_float("Discount factor gamma (e.g. 0.9): ", default=0.9, min_val=0.0, max_val=1.0)
     eps = utils.prompt_float("Exploration rate epsilon (e.g. 0.2): ", default=0.2, min_val=0.0, max_val=1.0)
+    episodes = utils.prompt_int("Number of training episodes (e.g. 500): ", default=500, min_val=1)
     seed = utils.prompt_int("Random seed for training (blank for default): ", default=args.seed)
 
-    return n, m, st, en, obs, alpha, gamma, eps, seed
+    return grid, st, en, alpha, gamma, eps, episodes, seed
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--demo", action="store_true")
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--episodes", type=int, default=1000)
+    parser.add_argument("--episodes", type=int, default=500)
     parser.add_argument("--output-dir", type=str, default="output")
     parser.add_argument("--eps-decay", type=float, default=1.0)
     args = parser.parse_args()
 
-    n, m, st, en, obs, alpha, gamma, eps, seed = build_from_args(args)
-    episodes = args.episodes
+    grid, st, en, alpha, gamma, eps, episodes, seed = build_from_args(args)
+    if args.episodes:
+        episodes = args.episodes
     out_dir = args.output_dir
     os.makedirs(out_dir, exist_ok=True)
 
-    try:
-        env = Grid(n=n, m=m, st=st, en=en, obs=obs)
-    except ValueError as e:
-        print(f"\nInvalid environment configuration: {e}")
-        return
-
-    print("\nGrid Layout:")
-    print(env.print_grid())
-
-    agent = Agent(env=env, alpha=alpha, gamma=gamma, eps=eps, eps_decay=args.eps_decay, seed=seed)
+    env = Grid(grid_vals=grid, st=st, en=en)
+    agent = Agent(env.n_states, env.n_actions, alpha=alpha, gamma=gamma, eps=eps, eps_decay=args.eps_decay, seed=seed)
     print(f"\nGrid: {env.n}x{env.m}   Start={st}   Goal={en}")
     print(f"alpha={alpha} gamma={gamma} epsilon={eps} episodes={episodes} max_steps/episode={env.max_steps}\n")
     print("Training...")
@@ -75,19 +80,29 @@ def main():
         print("Partial path followed: " + " -> ".join(str(p) for p in path))
     print(f"\nNumber of steps: {len(actions)}")
 
-    policy = utils.extract_policy(agent=agent)
     print(f"\n=== Optimal Policy ===")
-    utils.print_policy_grid(env=env, policy=policy)
+    utils.print_policy_grid(agent, env.n, env.m, st, en)
 
+    utils.save_q_table_csv(agent, env.n, env.m, os.path.join(out_dir, "q_table.csv"))
+    utils.plot_rewards(rewards, os.path.join(out_dir, "reward_per_episode.png"))
+    utils.plot_steps(steps, os.path.join(out_dir, "steps_per_episode.png"))
     utils.plot_grid_path(env=env, path=path, out_path=os.path.join(out_dir, "learned_optimal_path.png"))
-    utils.plot_rewards(rewards=rewards, out_path=os.path.join(out_dir, "reward_per_episode.png"))
-    utils.plot_steps(steps=steps, out_path=os.path.join(out_dir, "steps_per_episode.png"))
-    stats = utils.plot_comparison(rewards=rewards, steps=steps, out_path=os.path.join(out_dir, "early_vs_final_performance.png"))
+    stats = utils.plot_comparison(rewards, steps, os.path.join(out_dir, "early_vs_final_performance.png"))
 
     print("\n=== Comparison: Early vs Final Performance ===")
     print(f"(Averaged over the first {stats['window']} vs last {stats['window']} episodes)")
     print(f"  Average reward - early: {stats['early_reward_avg']:.2f}  final: {stats['final_reward_avg']:.2f}")
     print(f"  Average steps  - early: {stats['early_steps_avg']:.2f}   final: {stats['final_steps_avg']:.2f}")
+
+    summary = {
+        "rows": env.n, "cols": env.m, "start": st, "goal": en,
+        "hyperparameters": {
+            "alpha": alpha, "gamma": gamma, "epsilon": eps, "episodes": episodes, "epsilon_decay": args.eps_decay
+        },
+        "best_path": path, "total_reward": total_reward, "steps": len(actions), "reached_goal": success, "final_epsilon": agent.eps,
+        "reward_last_episode": rewards[-1], "reward_best_episode": max(rewards)
+    }
+    utils.save_summary_json(os.path.join(out_dir, "summary.json"), summary=summary)
 
 if __name__ == "__main__":
     main()

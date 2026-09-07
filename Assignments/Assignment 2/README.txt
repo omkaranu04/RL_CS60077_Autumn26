@@ -1,5 +1,5 @@
-Assignment 1: Grid World Navigation Using Q-Learning
-A tabular Q-Learning agent that learns to navigate a grid world from 'S' to 'G' while avoiding 'X'
+Assignment 2: Hidden Reward Grid - Maximum Reward Path Using Q-Learning
+A tabular Q-Learning agent that learns to travel from 'S' to 'G' on a grid whose rewards are hidden until visited
 
 Files:
 grid.py             -> The Grid environment
@@ -18,11 +18,11 @@ Requirements:
 
 How to Run?
     python main.py            -> interactive mode (prompts for grid size, start/goal,
-                                  obstacles, and hyperparameters)
+                                  hidden reward values, and hyperparameters)
     python main.py --demo     -> runs directly with the PDF's example grid
     Flags: --seed N, --episodes N, --eps-decay X, --output-dir DIR
-    e.g. python main.py --demo --episodes 2000 --eps-decay 0.995
-    Plots are saved to output/ (created next to main.py, overwritten each run)
+    e.g. python main.py --demo --episodes 1500 --eps-decay 0.995
+    Results/plots are saved to output/ (created next to main.py, overwritten each run)
 
 Use of the test_cases.py file:
     python test_cases.py

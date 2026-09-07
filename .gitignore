@@ -1,3 +1,4 @@
-Assignments/Assignment 1/Sample Output 2.jpeg
-Assignments/Assignment 1/Sample Output.jpeg
 *.zip
+__pycache__/
+*.pyc
+.pytest_cache/
