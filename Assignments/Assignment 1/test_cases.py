@@ -1,3 +1,6 @@
+"""
+Scenario-based end-to-end verification using some manually verified test-cases
+"""
 import sys
 from collections import deque
 from grid import Grid

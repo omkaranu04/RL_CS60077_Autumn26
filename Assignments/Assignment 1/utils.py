@@ -7,6 +7,9 @@ from agent import Agent
 
 ARROW_SYMBOLS = {"Up": " ^ ", "Down": " v ", "Left": " < ", "Right": " > "}
 
+# -----------------------------
+# User prompt helper functions
+# -----------------------------
 def prompt_int(prompt_text, default=None, min_val=None, max_val=None):
     while True:
         raw = input(prompt_text).strip()
@@ -58,7 +61,14 @@ def prompt_coord(prompt_text, default=None, n=None, m=None):
         except (ValueError, AttributeError):
             print("     Please enter coordinates as row,col eg. 1,1")
 
+# -----------------------------
+# Training Function
+# -----------------------------
 def train(env: Grid, agent: Agent, episodes, verbose_after=0):
+    """
+        Run Q-Learning for 'episode' episodes
+        Return: (reward, step) history
+    """
     rewards_per_episode, steps_per_episode = [], []
     for ep in range(1, episodes + 1):
         state = env.st
@@ -73,10 +83,11 @@ def train(env: Grid, agent: Agent, episodes, verbose_after=0):
             total_reward += reward
             steps += 1
 
-        agent.decay_eps()
+        agent.decay_eps()                           # epsilon decay after 1 episode
         rewards_per_episode.append(total_reward)
         steps_per_episode.append(steps)
 
+        # verbose printing option
         if verbose_after and ep % verbose_after == 0:
             print(f"  Episode {ep:5d}/{episodes} | "
                   f"reward={total_reward:8.1f} | steps={steps:4d} | "
@@ -85,6 +96,9 @@ def train(env: Grid, agent: Agent, episodes, verbose_after=0):
     return rewards_per_episode, steps_per_episode
 
 def extract_policy(agent: Agent):
+    """
+        Return {state: best_action} -> for every non obstacle cell, based on the learned Q-Table
+    """
     env = agent.env
     policy = {}
     for x in range(env.n):
@@ -95,6 +109,11 @@ def extract_policy(agent: Agent):
     return policy
 
 def get_best_path(env: Grid, agent: Agent):
+    """
+        Greedily follow learned policy from start to goal
+        Returns: (path, actions, step_rewards, total_reward, success)
+        success=False -> if policy loops back to visited state without ever reaching goal
+    """
     max_len = env.max_steps
     state = env.st
     path = [state]
@@ -109,7 +128,7 @@ def get_best_path(env: Grid, agent: Agent):
             return path, actions, step_rewards, total_reward, False
         visited.add(state)
 
-        action = agent.choose_action(state=state, greedy=True)
+        action = agent.choose_action(state=state, greedy=True)              # greedy=True -> pure exploitation
         next_state, reward, done = env.step(state=state, action_idx=action)
         actions.append(action)
         step_rewards.append(reward)
@@ -124,6 +143,9 @@ def get_best_path(env: Grid, agent: Agent):
     return path, actions, step_rewards, total_reward, success
 
 def print_q_table(agent: Agent, rows, cols):
+    """
+        Print the final Q-Table: (states x actions) dimension
+    """
     lines = []
     header = f"{'State':<10}" + "".join(f"{name.upper():>10}" for name in ACTIONS)
     lines.append(header)
@@ -137,6 +159,9 @@ def print_q_table(agent: Agent, rows, cols):
     print("\n".join(lines))
 
 def print_policy_grid(env: Grid, policy):
+    """
+        Print the learned policy as grid of actions (arrows)
+    """
     for x in range(env.n):
         row = []
         for y in range(env.m):
@@ -150,6 +175,9 @@ def print_policy_grid(env: Grid, policy):
         print("".join(row))
 
 def format_path_table(path, actions, step_rewards, total_reward):
+    """
+        For the table formatting as shown in the Sample Output (in class)
+    """
     col_widths = (5, 11, 9, 11)
     lines = []
     header = (f"{'Step':<{col_widths[0]}}{'From':<{col_widths[1]}}{'Action':<{col_widths[2]}}{'To':<{col_widths[3]}}{'Reward':>6}")
@@ -164,6 +192,9 @@ def format_path_table(path, actions, step_rewards, total_reward):
     lines.append(f"{'Total':<{sum(col_widths)}}{total_reward:>6}")
     return "\n".join(lines)
 
+# -----------------------------
+# Plot Functions
+# -----------------------------
 def plot_rewards(rewards, out_path):
     plt.figure(figsize=(8, 5))
     plt.plot(rewards, linewidth=1)

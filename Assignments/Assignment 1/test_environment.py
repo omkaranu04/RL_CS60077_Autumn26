@@ -1,5 +1,12 @@
+"""
+pytest unit tests for the Grid Environment, in isolation from agent
+"""
 import pytest
 from grid import Grid, ACTIONS
+
+"""
+A small 3x3 grid with single obstacle, used for the tests below
+"""
 
 def make_env():
     return Grid(n=3, m=3, st=(0, 0), en=(2, 2), obs=[(1, 1)])

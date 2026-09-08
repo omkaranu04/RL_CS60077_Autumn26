@@ -1,5 +1,12 @@
+"""
+pytest unit tests for the Q-Learning agent, in siolation from training 
+"""
 from grid import Grid
 from agent import Agent
+
+"""
+A small 2x2 grid, used for the tests below
+"""
 
 def make_env():
     return Grid(n=2, m=2, st=(0, 0), en=(1, 1), obs=[])
