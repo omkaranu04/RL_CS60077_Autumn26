@@ -2,6 +2,10 @@ import pytest
 from grid import Grid, ACTIONS
 from agent import Agent
 
+"""
+Testing a small 3x3 environment to check the integrity of the coded class
+"""
+
 def make_env():
     grid = [
         [0, 1, 2],
@@ -48,7 +52,6 @@ def test_revisit_is_invalid():
     assert info["valid_move"] is False
     assert reward == -10
     assert env.curr_pos == (0, 1)
- 
  
 def test_reaching_goal_gives_bonus_and_ends_episode():
     grid = [[0, 0], [0, 0]]

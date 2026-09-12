@@ -3,6 +3,7 @@ from grid import Grid
 from agent import Agent
 import utils
 
+# From the assignment (works as default input) as well as when --demo is used
 DEMO_GRID = [
     [0, 9, -6, -2, 1],
     [-9, 2, -5, 1, 1],
@@ -19,13 +20,14 @@ def build_from_args(args):
         print("Running in --demo mode with example grid from the PDF")
         return (DEMO_GRID, DEMO_START, DEMO_GOAL, 0.1, 0.9, 0.2, 500, args.seed)
 
-    rows = utils.prompt_int("Number of rows (N): ", min_val=1)
-    cols = utils.prompt_int("Number of columns (M): ", min_val=1)
-    st = utils.prompt_coord("Start position (row,col): ", n=rows, m=cols)
-    en = utils.prompt_coord("Goal position (row,col): ", n=rows, m=cols)
+    # taking all the inputs (or retorting to defaults)
+    rows = utils.prompt_int("Number of rows (N): ", default=len(DEMO_GRID), min_val=1)
+    cols = utils.prompt_int("Number of columns (M): ", default=len(DEMO_GRID[0]), min_val=1)
+    st = utils.prompt_coord("Start position (row,col): ", default=DEMO_START, n=rows, m=cols)
+    en = utils.prompt_coord("Goal position (row,col): ", default=DEMO_GOAL, n=rows, m=cols)
     while st == en:
         print("     Goal must differ from Start.")
-        en = utils.prompt_coord("Goal position (row,col): ", n=rows, m=cols)
+        en = utils.prompt_coord("Goal position (row,col): ", default=DEMO_GOAL, n=rows, m=cols)
 
     mode = input("Enter grid values manually or randomly? [m/r] (default r): ").strip().lower()
     if mode == "m":
@@ -46,6 +48,7 @@ def build_from_args(args):
     return grid, st, en, alpha, gamma, eps, episodes, seed
 
 def main():
+    # command line flags
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--demo", action="store_true")
     parser.add_argument("--seed", type=int, default=42)
@@ -60,6 +63,7 @@ def main():
     out_dir = args.output_dir
     os.makedirs(out_dir, exist_ok=True)
 
+    # build the environment and agent and train
     env = Grid(grid_vals=grid, st=st, en=en)
     agent = Agent(env.n_states, env.n_actions, alpha=alpha, gamma=gamma, eps=eps, eps_decay=args.eps_decay, seed=seed)
     print(f"\nGrid: {env.n}x{env.m}   Start={st}   Goal={en}")
@@ -71,6 +75,7 @@ def main():
     print("==== Final Q-table ====")
     utils.print_q_table(agent=agent, rows=env.n, cols=env.m)
 
+    # get the actual best path
     path, actions, step_rewards, total_reward, success = utils.get_best_path(env=env, agent=agent)
     print("\n=== Learned Optimal Path ===")
     if success:
@@ -83,6 +88,7 @@ def main():
     print(f"\n=== Optimal Policy ===")
     utils.print_policy_grid(agent, env.n, env.m, st, en)
 
+    # save all the required things
     utils.save_q_table_csv(agent, env.n, env.m, os.path.join(out_dir, "q_table.csv"))
     utils.plot_rewards(rewards, os.path.join(out_dir, "reward_per_episode.png"))
     utils.plot_steps(steps, os.path.join(out_dir, "steps_per_episode.png"))

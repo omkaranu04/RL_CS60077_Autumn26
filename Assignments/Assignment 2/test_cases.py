@@ -3,6 +3,10 @@ from grid import Grid, ACTIONS
 from agent import Agent
 import utils
 
+"""
+Defined manual test cases and tested them against the Agent
+"""
+
 def trace_actions(env, action_names):
     env.reset()
     total_reward = 0.0
@@ -14,6 +18,7 @@ def trace_actions(env, action_names):
             reached_goal = True
     return list(env.path), total_reward, env.steps_taken, reached_goal
 
+# DFS will give the brute force optimal solution
 def brute_force_optimal(env):
     best = {"reward": float("-inf"), "path": None}
     deltas = {"Up": (-1, 0), "Down": (1, 0), "Left": (0, -1), "Right": (0, 1)}

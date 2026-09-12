@@ -7,6 +7,9 @@ from grid import ACTIONS, Grid
 from agent import Agent
 
 def gen_random_grid(rows, cols, st, en, seed=None):
+    """
+        Random integer reward generator for the grid for every cell for within limits
+    """
     rng = random.Random(seed)
     grid = [[0] * cols for _ in range(rows)]
     choices = list(range(-10, 0)) + list(range(1, 11))
@@ -18,6 +21,9 @@ def gen_random_grid(rows, cols, st, en, seed=None):
     return grid
 
 def get_manual_grid(rows, cols, st, en):
+    """
+        Prompt for the input of the cell to the user
+    """
     grid = [[0] * cols for _ in range(rows)]
     print("\nEnter the hidden reward value for each cell.")
     print("Allowed ranges: 1 to 10 (positive reward) or -1 to -10 (negative reward).")
@@ -44,6 +50,7 @@ def get_manual_grid(rows, cols, st, en):
                 break
     return grid
 
+# Prompt helper functions
 def prompt_int(prompt_text, default=None, min_val=None, max_val=None):
     while True:
         raw = input(prompt_text).strip()
@@ -95,6 +102,7 @@ def prompt_coord(prompt_text, default=None, n=None, m=None):
         except (ValueError, AttributeError):
             print("     Please enter coordinates as row,col eg. 1,1")
 
+# Main training loop
 def train(env: Grid, agent: Agent, episodes, verbose_after=0):
     rewards_per_episode, steps_per_episode = [], []
     for ep in range(1, episodes + 1):
@@ -108,7 +116,7 @@ def train(env: Grid, agent: Agent, episodes, verbose_after=0):
             state = next_state
             total_reward += reward
 
-        agent.decay_eps()
+        agent.decay_eps() # decay the epsilon after an episode
         rewards_per_episode.append(total_reward)
         steps_per_episode.append(env.steps_taken)
 
@@ -120,6 +128,9 @@ def train(env: Grid, agent: Agent, episodes, verbose_after=0):
     return rewards_per_episode, steps_per_episode
 
 def get_best_path(env: Grid, agent: Agent):
+    """
+        Extract the greedy learned policy from start to end (exploit since greedy)
+    """
     state = env.reset()
     actions, step_rewards = [], []
     total_reward = 0.0
@@ -144,6 +155,7 @@ def get_best_path(env: Grid, agent: Agent):
 
     return list(env.path), actions, step_rewards, total_reward, success
 
+# output helper functions
 def save_q_table_csv(agent: Agent, rows, cols, path):
     with open(path, "w", newline="") as f:
         writer = csv.writer(f)
@@ -193,6 +205,7 @@ def format_path_table(path, actions, step_rewards, total_reward):
     lines.append(f"{'Total':<{sum(col_widths)}}{total_reward:>6}")
     return "\n".join(lines)
 
+# plotting helper functions
 def plot_rewards(rewards, out_path):
     plt.figure(figsize=(9, 5))
     plt.plot(range(1, len(rewards) + 1), rewards, linewidth=1, label="reward per episode")
