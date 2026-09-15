@@ -4,6 +4,7 @@ def make_board(size=3):
     return Board(size=size)
 
 def test_reset_state():
+    # fresh board should be all empty
     b = make_board()
     s = b.reset()
     assert s == b.state_idx((EMPTY,) * 9)
@@ -12,6 +13,7 @@ def test_reset_state():
     assert b.steps_taken == 0
 
 def test_valid_move_updates_cell_and_switches_player():
+    # a valid move marks the cell, gives the reward (penalty) and passes the turn
     b = make_board()
     b.reset()
     _, reward, done, info = b.step(0)
@@ -22,6 +24,7 @@ def test_valid_move_updates_cell_and_switches_player():
     assert b.current_player == O
 
 def test_move_into_occupied_cell_is_invalid():
+    # marking an already occupied cell must be not valid
     b = make_board()
     b.reset()
     b.step(0)  # X marks cell 0
@@ -33,6 +36,7 @@ def test_move_into_occupied_cell_is_invalid():
     assert b.cells[0] == X  # unchanged
 
 def test_row_win_detected():
+    # row win check
     b = make_board()
     b.reset()
     moves = [0, 3, 1, 4, 2]  # X: 0,1,2 (top row)  O: 3,4
@@ -44,6 +48,7 @@ def test_row_win_detected():
     assert reward == 100
 
 def test_draw_detected():
+    # check for a hard coded draw condition
     b = make_board()
     b.reset()
     # Final layout (no winner):  X O X / X O O / O X X
@@ -57,6 +62,7 @@ def test_draw_detected():
     assert reward == 0
 
 def test_available_actions_excludes_occupied():
+    # available actions should always return only empty cells
     b = make_board()
     b.reset()
     b.step(0)
@@ -65,6 +71,7 @@ def test_available_actions_excludes_occupied():
     assert len(avail) == 8
 
 def test_state_idx_round_trip():
+    # indexing and de-indexing should be complimentory
     b = make_board()
     b.reset()
     b.step(4)
@@ -73,6 +80,7 @@ def test_state_idx_round_trip():
     assert b.state_from_idx(idx) == cells
 
 def test_print_board_shows_marks():
+    # printed board should show the mark in correct cell
     b = make_board()
     b.reset()
     b.step(0)

@@ -3,6 +3,10 @@ from board import Board, X, O
 from agent import Agent
 import utils
 
+"""
+Defining some manual hard coded test cases to test the environment and the agents (for cross checking)
+"""
+
 class ScriptedAgent:
     """Replays a fixed list of actions in order, ignoring state/greedy/updates."""
     def __init__(self, moves):

@@ -3,17 +3,20 @@ from board import Board, X, O
 from agent import Agent
 import utils
 
+# Default input values
 DEMO_SIZE = 3
 DEMO_ALPHA = 0.1
 DEMO_GAMMA = 0.9
 DEMO_EPS = 0.3
 
 def build_from_args(args):
+    """resolve the input values from the args"""
     if args.demo:
         print("Running in --demo mode with the classic 3x3 board")
         return DEMO_SIZE, DEMO_ALPHA, DEMO_GAMMA, DEMO_EPS, args.seed
 
-    size = utils.prompt_int("Board size N (N x N grid, e.g. 3): ", default=DEMO_SIZE, min_val=3, max_val=5)
+    # n_states = 3**(size*size), so the dense Q-table only stays tractable at the classic 3x3 size
+    size = utils.prompt_int("Board size N (N x N grid, fixed at 3 for classic play): ", default=DEMO_SIZE, min_val=3, max_val=3)
     alpha = utils.prompt_float("Learning rate alpha (e.g. 0.1): ", default=DEMO_ALPHA, min_val=0.0, max_val=1.0)
     gamma = utils.prompt_float("Discount factor gamma (e.g. 0.9): ", default=DEMO_GAMMA, min_val=0.0, max_val=1.0)
     eps = utils.prompt_float("Exploration rate epsilon (e.g. 0.3): ", default=DEMO_EPS, min_val=0.0, max_val=1.0)
@@ -36,6 +39,7 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
 
     board = Board(size=size)
+    # two independent agents for X and O
     agent_x = Agent(board.n_states, board.n_actions, alpha=alpha, gamma=gamma, eps=eps, eps_decay=args.eps_decay, seed=seed)
     agent_o = Agent(board.n_states, board.n_actions, alpha=alpha, gamma=gamma, eps=eps, eps_decay=args.eps_decay, seed=seed + 1)
 
@@ -52,6 +56,7 @@ def main():
     print("\n==== Q-table sample: Agent O ====")
     utils.print_q_sample(agent_o, board, name="Agent O")
 
+    # learned policy -> one full greedy episode from empty board
     print("\n=== Learned Self-Play Trace (greedy, from empty board) ===")
     ep_reward, marks_placed, winner, draw, trace = utils.play_episode(
         board=board, agent_x=agent_x, agent_o=agent_o, learn=False, greedy=True, record_trace=True)
@@ -60,6 +65,7 @@ def main():
     print(f"\nOutcome: {outcome_str}   Moves: {marks_placed}")
     print(f"Total reward - Agent X: {ep_reward[X]}   Agent O: {ep_reward[O]}")
 
+    # save the plots and the comprehensive json file
     utils.plot_rewards(reward_x, reward_o, os.path.join(out_dir, "reward_per_episode.png"))
     utils.plot_steps(steps, os.path.join(out_dir, "steps_per_episode.png"))
     stats = utils.plot_comparison(steps, outcomes, os.path.join(out_dir, "early_vs_final_performance.png"))

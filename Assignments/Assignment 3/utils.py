@@ -6,6 +6,7 @@ import numpy as np
 from board import Board, X, O, SYMBOLS, R_LOSE, R_DRAW
 from agent import Agent
 
+# prompt helper functions
 def prompt_int(prompt_text, default=None, min_val=None, max_val=None):
     while True:
         raw = input(prompt_text).strip()
@@ -99,6 +100,7 @@ def play_episode(board: Board, agent_x: Agent, agent_o: Agent, learn=True, greed
 
     return episode_reward, marks_placed, winner, draw, trace
 
+# main training function for the agents
 def train_self_play(board: Board, agent_x: Agent, agent_o: Agent, episodes, verbose_after=0):
     reward_x, reward_o, steps_per_episode, outcomes = [], [], [], []
     for ep in range(1, episodes + 1):
@@ -123,6 +125,7 @@ def train_self_play(board: Board, agent_x: Agent, agent_o: Agent, episodes, verb
 
     return reward_x, reward_o, steps_per_episode, outcomes
 
+# print helper functions
 def print_q_sample(agent: Agent, board: Board, name, top_k=15):
     most_visited = sorted(agent.visit_counts.items(), key=lambda kv: kv[1], reverse=True)[:top_k]
     print(f"{name} -- top {len(most_visited)} most-visited states (of {len(agent.visit_counts)} visited)")
@@ -148,6 +151,7 @@ def format_trace(trace, board: Board):
         lines.append(f"{i:<{col_widths[0]}}{SYMBOLS[player]:<{col_widths[1]}}{action:<{col_widths[2]}}{board_flat}")
     return "\n".join(lines)
 
+# plot helper functions
 def plot_rewards(reward_x, reward_o, out_path):
     plt.figure(figsize=(9, 5))
     plt.plot(range(1, len(reward_x) + 1), reward_x, linewidth=1, label="Agent X", color="royalblue")

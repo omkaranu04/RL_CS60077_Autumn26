@@ -2,8 +2,8 @@
   "board_size": 3,
   "hyperparameters": {
     "alpha": 0.1,
-    "gamma": 0.9,
-    "epsilon": 0.3,
+    "gamma": 0.7,
+    "epsilon": 0.2,
     "episodes": 20000,
     "epsilon_decay": 0.9995
   },
@@ -11,11 +11,11 @@
     "moves": [
       {
         "player": "X",
-        "cell": 3
+        "cell": 6
       },
       {
         "player": "O",
-        "cell": 2
+        "cell": 3
       },
       {
         "player": "X",
@@ -23,7 +23,7 @@
       },
       {
         "player": "O",
-        "cell": 5
+        "cell": 2
       },
       {
         "player": "X",
@@ -31,31 +31,23 @@
       },
       {
         "player": "O",
-        "cell": 0
-      },
-      {
-        "player": "X",
-        "cell": 1
-      },
-      {
-        "player": "O",
         "cell": 7
       },
       {
         "player": "X",
-        "cell": 6
+        "cell": 0
       }
     ],
-    "outcome": "Draw",
-    "moves_count": 9,
-    "reward_x": -4.0,
-    "reward_o": -4.0
+    "outcome": "X wins",
+    "moves_count": 7,
+    "reward_x": 97.0,
+    "reward_o": -103.0
   },
   "final_epsilon_x": 0.01,
   "final_epsilon_o": 0.01,
   "final_win_draw_rates": {
-    "x_rate": 0.3105,
-    "o_rate": 0.173,
-    "draw_rate": 0.5165
+    "x_rate": 0.1985,
+    "o_rate": 0.063,
+    "draw_rate": 0.7385
   }
 }
